@@ -2,6 +2,8 @@ import 'package:frontend/features/auth/data/datasources/auth_local_data_source.d
 import 'package:frontend/features/auth/domain/usecases/current_user.dart';
 import 'package:frontend/features/auth/domain/usecases/user_login.dart';
 import 'package:frontend/features/auth/domain/usecases/user_logout.dart';
+import 'package:frontend/features/task/domain/usecases/get_all_tasks.dart';
+import 'package:frontend/features/task/presentation/bloc/task_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:frontend/features/auth/data/datasources/auth_remote_data_source.dart';
 import 'package:frontend/features/auth/data/repositories/auth_repository_impl.dart';
@@ -9,6 +11,10 @@ import 'package:frontend/features/auth/domain/repository/auth_repository.dart';
 import 'package:frontend/features/auth/domain/usecases/user_sign_up.dart';
 import 'package:frontend/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:frontend/features/task/data/datasources/task_remote_data_source.dart';
+import 'package:frontend/features/task/data/repositories/task_repository_impl.dart';
+import 'package:frontend/features/task/domain/repository/task_repository.dart';
+import 'package:frontend/features/task/domain/usecases/upload_task.dart';
 
 // Creamos la instancia global del Service Locator
 final serviceLocator = GetIt.instance;
@@ -18,6 +24,7 @@ Future<void> initDependencies() async {
   serviceLocator.registerLazySingleton(() => sharedPreferences);
 
   _initAuth();
+  _initTask();
 }
 
 void _initAuth() {
@@ -52,5 +59,26 @@ void _initAuth() {
       currentUser: serviceLocator(),
       userLogout: serviceLocator(),
     ),
+  );
+}
+
+void _initTask() {
+  // Datasource
+  serviceLocator.registerLazySingleton<TaskRemoteDataSource>(
+    () => TaskRemoteDataSourceImpl(),
+  );
+
+  // Repository
+  serviceLocator.registerLazySingleton<TaskRepository>(
+    () => TaskRepositoryImpl(serviceLocator()),
+  );
+
+  // Use Case
+  serviceLocator.registerLazySingleton(() => UploadTask(serviceLocator()));
+  serviceLocator.registerLazySingleton(() => GetAllTasks(serviceLocator()));
+
+  // BLoC
+  serviceLocator.registerLazySingleton(
+    () => TaskBloc(uploadTask: serviceLocator(), getAllTasks: serviceLocator()),
   );
 }

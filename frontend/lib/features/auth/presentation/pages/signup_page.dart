@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/common/widgets/custom_field.dart';
 import 'package:frontend/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:frontend/features/auth/presentation/pages/home_page.dart';
 import 'package:frontend/features/auth/presentation/pages/login_page.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_gradient_button.dart';
 import 'package:frontend/core/theme/app_pallete.dart';
+import 'package:frontend/features/home/presentation/pages/home_page.dart';
 
 class SignUpPage extends StatefulWidget {
   static MaterialPageRoute<dynamic> route() =>

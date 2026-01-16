@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/common/widgets/custom_field.dart';
 import 'package:frontend/core/theme/app_pallete.dart';
+import 'package:frontend/core/utils/show_snackbar.dart';
 import 'package:frontend/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:frontend/features/auth/presentation/pages/home_page.dart';
 import 'package:frontend/features/auth/presentation/pages/signup_page.dart';
 import 'package:frontend/features/auth/presentation/widgets/auth_gradient_button.dart';
 
@@ -36,28 +36,12 @@ class _LoginPageState extends State<LoginPage> {
         child: BlocConsumer<AuthBloc, AuthState>(
           listener: (context, state) {
             if (state is AuthFailure) {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text(state.message),
-                    backgroundColor: Colors.red,
-                  ),
-                );
-            } else if (state is AuthSuccess) {
-              Navigator.pushAndRemoveUntil(
-                context,
-                HomePage.route(),
-                (route) => false,
-              );
+              showSnackBar(context, state.message);
             }
           },
           builder: (context, state) {
             if (state is AuthLoading) {
-              return Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [const Center(child: CircularProgressIndicator())],
-              );
+              return const CircularProgressIndicator();
             }
             return Form(
               key: formKey,
