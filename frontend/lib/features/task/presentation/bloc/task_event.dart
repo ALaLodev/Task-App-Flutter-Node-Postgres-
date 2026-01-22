@@ -12,6 +12,7 @@ final class TaskUpload extends TaskEvent {
   final String title;
   final String description;
   final String hexColor;
+  final DateTime dueDate;
   final String token;
 
   const TaskUpload({
@@ -19,11 +20,12 @@ final class TaskUpload extends TaskEvent {
     required this.title,
     required this.description,
     required this.hexColor,
+    required this.dueDate,
     required this.token,
   });
 
   @override
-  List<Object> get props => [uid, title, description, hexColor, token];
+  List<Object> get props => [uid, title, description, hexColor, dueDate, token];
 }
 
 final class TaskFetchAllTasks extends TaskEvent {
@@ -33,4 +35,29 @@ final class TaskFetchAllTasks extends TaskEvent {
 
   @override
   List<Object> get props => [token];
+}
+
+final class TaskUpdateStatus extends TaskEvent {
+  final String taskId;
+  final bool isCompleted;
+  final String token;
+
+  const TaskUpdateStatus({
+    required this.taskId,
+    required this.isCompleted,
+    required this.token,
+  });
+
+  @override
+  List<Object> get props => [taskId, isCompleted, token];
+}
+
+final class TaskDelete extends TaskEvent {
+  final String taskId;
+  final String token;
+
+  const TaskDelete({required this.taskId, required this.token});
+
+  @override
+  List<Object> get props => [taskId, token];
 }

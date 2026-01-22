@@ -16,6 +16,7 @@ class UploadTask implements UseCase<Task, UploadTaskParams> {
       title: params.title,
       description: params.description,
       hexColor: params.hexColor,
+      dueDate: params.dueDate,
       token: params.token,
     );
   }
@@ -26,6 +27,7 @@ class UploadTaskParams {
   final String title;
   final String description;
   final String hexColor;
+  final DateTime dueDate;
   final String token;
 
   UploadTaskParams({
@@ -33,6 +35,7 @@ class UploadTaskParams {
     required this.title,
     required this.description,
     required this.hexColor,
+    required this.dueDate,
     required this.token,
   });
 }

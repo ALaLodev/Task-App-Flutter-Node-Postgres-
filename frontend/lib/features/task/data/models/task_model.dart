@@ -10,6 +10,8 @@ class TaskModel extends Task {
     required super.uid,
     required super.updatedAt,
     required super.createdAt,
+    required super.dueDate,
+    required super.isCompleted,
   });
 
   // 1. fromMap: De Objeto JSON (Map) a Clase Dart
@@ -27,6 +29,10 @@ class TaskModel extends Task {
       createdAt: map['createdAt'] != null
           ? DateTime.parse(map['createdAt'])
           : DateTime.now(),
+      dueDate: map['dueDate'] != null
+          ? DateTime.parse(map['dueDate'])
+          : DateTime.now(),
+      isCompleted: map['isCompleted'] ?? false,
     );
   }
 
@@ -40,6 +46,8 @@ class TaskModel extends Task {
       'uid': uid,
       'updatedAt': updatedAt.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
+      'dueDate': dueDate.toIso8601String(),
+      'isCompleted': isCompleted,
     };
   }
 
@@ -58,6 +66,8 @@ class TaskModel extends Task {
     String? uid,
     DateTime? updatedAt,
     DateTime? createdAt,
+    DateTime? dueDate,
+    bool? isCompleted,
   }) {
     return TaskModel(
       id: id ?? this.id,
@@ -67,6 +77,8 @@ class TaskModel extends Task {
       uid: uid ?? this.uid,
       updatedAt: updatedAt ?? this.updatedAt,
       createdAt: createdAt ?? this.createdAt,
+      dueDate: dueDate ?? this.dueDate,
+      isCompleted: isCompleted ?? this.isCompleted,
     );
   }
 }

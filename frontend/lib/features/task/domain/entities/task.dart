@@ -6,6 +6,8 @@ class Task {
   final String uid;
   final DateTime updatedAt;
   final DateTime createdAt;
+  final DateTime dueDate;
+  final bool isCompleted;
 
   Task({
     required this.id,
@@ -15,5 +17,7 @@ class Task {
     required this.uid,
     required this.updatedAt,
     required this.createdAt,
+    required this.dueDate,
+    required this.isCompleted,
   });
 }

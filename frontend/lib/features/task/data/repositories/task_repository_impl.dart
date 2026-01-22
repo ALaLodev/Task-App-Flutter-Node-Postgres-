@@ -1,4 +1,5 @@
 import 'package:fpdart/fpdart.dart' hide Task;
+import 'package:uuid/uuid.dart';
 import 'package:frontend/core/error/exception.dart';
 import 'package:frontend/core/error/failures.dart';
 import 'package:frontend/features/task/data/datasources/task_remote_data_source.dart';
@@ -17,28 +18,32 @@ class TaskRepositoryImpl implements TaskRepository {
     required String title,
     required String description,
     required String hexColor,
+    required DateTime dueDate,
     required String token,
   }) async {
     try {
-      // 1. Creamos el modelo
+      final generatedId = const Uuid().v4();
+
       final taskModel = TaskModel(
-        id: '', // El servidor generará el ID, enviamos vacío por ahora
+        id: generatedId,
         uid: uid,
         title: title,
         description: description,
         hexColor: hexColor,
+        dueDate: dueDate,
         updatedAt: DateTime.now(),
         createdAt: DateTime.now(),
+        isCompleted: false,
       );
 
       // 2. Intentamos enviarlo (Esto puede lanzar ServerException)
-      final remoteTask = await remoteDataSource.uploadTask(
+      final uploadedTask = await remoteDataSource.uploadTask(
         task: taskModel,
         token: token,
       );
 
       // 3. Si todo va bien, devolvemos la Entidad (Right)
-      return right(remoteTask);
+      return right(uploadedTask);
     } on ServerException catch (e) {
       // 4. Si explota por culpa del servidor (nuestra excepción personalizada)
       // Convertimos la Exception en un Failure
@@ -58,6 +63,37 @@ class TaskRepositoryImpl implements TaskRepository {
       return left(Failure(e.message));
     } catch (e) {
       return left(Failure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> syncTaskStatus({
+    required String token,
+    required String taskId,
+    required bool isCompleted,
+  }) async {
+    try {
+      await remoteDataSource.syncTaskStatus(
+        token: token,
+        taskId: taskId,
+        isCompleted: isCompleted,
+      );
+      return right(null);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteTask({
+    required String taskId,
+    required String token,
+  }) async {
+    try {
+      await remoteDataSource.deleteTask(taskId: taskId, token: token);
+      return right(null);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
     }
   }
 }

@@ -1,35 +1,39 @@
 import { Router, Response } from "express";
 import { authMiddleware, AuthRequest } from "../middleware/auth";
 import { PrismaClient } from "@prisma/client";
+import { error } from "node:console";
 
 const tasksRouter = Router();
 const prisma = new PrismaClient();
 
-// RUTA: POST /tasks
-// Crea una nueva tarea
 tasksRouter.post("/", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
-    // 1. Obtenemos el ID del usuario gracias al middleware (req.user)
-    const uid = req.user; 
+    const uid = req.user;
     
-    // 2. Obtenemos los datos que envía el móvil
-    const { title, description, hexColor } = req.body;
+    // 👇 1. AHORA RECIBIMOS TAMBIÉN EL 'id'
+    const { id, title, hexColor, description, dueDate } = req.body;
 
-    // 3. Guardamos en la base de datos
+    // Log para depurar (mira esto en la terminal si falla)
+    console.log("📥 Recibiendo tarea:", { id, title, dueDate });
+
     const newTask = await prisma.task.create({
       data: {
+        id: id, // 👈 2. IMPORTANTE: Usamos el ID que viene de Flutter
         title,
         description,
         hexColor,
-        uid: uid!, // El signo ! le dice a TS que confiamos en que uid existe
-        dueDate: new Date()
+        uid: uid!,
+        // Convertimos el string ISO a objeto Date
+        dueDate: dueDate ? new Date(dueDate) : new Date(),
+        // Prisma se encarga de createdAt y updatedAt automáticamente
       },
     });
 
-    // 4. Devolvemos la tarea creada
-    res.json(newTask);
+    res.status(201).json(newTask);
     
   } catch (e) {
+    // 👇 ESTO ES LO QUE NECESITAS VER SI FALLA
+    console.log("❌ ERROR FATAL AL CREAR TAREA:", e); 
     res.status(500).json({ error: (e as Error).message });
   }
 });
@@ -53,4 +57,50 @@ tasksRouter.get("/", authMiddleware, async (req: AuthRequest, res: Response): Pr
     res.status(500).json({ error: (e as Error).message });
   }
 });
+
+tasksRouter.post("/sync", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { id, isCompleted } = req.body; // Recibimos el ID y el nuevo estado
+
+    // Validamos que nos manden el ID
+    if (!id) {
+      res.status(400).json({ error: "Task ID is required" });
+      return;
+    }
+
+    console.log(`🔄 Actualizando tarea ${id} a estado: ${isCompleted}`);
+
+    // Actualizamos en la base de datos
+    const updatedTask = await prisma.task.update({
+      where: {
+        id: id,
+      },
+      data: {
+        isCompleted: isCompleted,
+      },
+    });
+
+    res.json(updatedTask);
+  } catch (e) {
+    console.log("❌ Error al actualizar tarea:", e);
+    res.status(500).json({ error: "No se pudo actualizar la tarea" });
+  }
+});
+
+tasksRouter.delete("/:taskId", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const { taskId } = req.params as {taskId: string}; // Cogemos el ID de la URL
+
+    await prisma.task.delete({
+      where: {
+        id: taskId,
+      },
+    });
+
+    res.json({ message: "Task deleted successfully" });
+  } catch (e) {
+    res.status(500).json({ error: "Error deleting task" });
+  }
+});
+
 export default tasksRouter;

@@ -1,11 +1,13 @@
+import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:frontend/core/utils/show_snackbar.dart';
 import 'package:frontend/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:frontend/features/task/presentation/bloc/task_bloc.dart';
+import 'package:intl/intl.dart';
 
 class AddNewTaskPage extends StatefulWidget {
-  static MaterialPageRoute<dynamic> route() =>
+  static MaterialPageRoute route() =>
       MaterialPageRoute(builder: (context) => const AddNewTaskPage());
 
   const AddNewTaskPage({super.key});
@@ -19,16 +21,13 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
   final descriptionController = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
-  // Colores disponibles para elegir
-  // Color por defecto
-  Color selectedColor = const Color.fromRGBO(246, 222, 194, 1);
-  final List<Color> cardColors = const [
-    Color.fromRGBO(246, 222, 194, 1), // Crema
-    Color.fromRGBO(236, 145, 146, 1), // Salmón
-    Color.fromRGBO(173, 216, 230, 1), // Azul claro
-    Color.fromRGBO(144, 238, 144, 1), // Verde claro
-    Color.fromRGBO(255, 182, 193, 1), // Rosa
-  ];
+  DateTime selectedDate = DateTime.now();
+  Color selectedColor = const Color.fromRGBO(
+    246,
+    222,
+    194,
+    1,
+  ); // Color crema por defecto
 
   @override
   void dispose() {
@@ -37,21 +36,18 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
     super.dispose();
   }
 
-  void uploadTask() {
+  void createTask() {
     if (formKey.currentState!.validate()) {
-      // 1. Obtenemos el usuario actual del AuthBloc
       final authState = context.read<AuthBloc>().state;
-
       if (authState is AuthSuccess) {
-        // 2. Disparamos el evento al TaskBloc
         context.read<TaskBloc>().add(
           TaskUpload(
             uid: authState.user.id,
             title: titleController.text.trim(),
             description: descriptionController.text.trim(),
-            // Convertimos Color a Hex String: Color(0xFFFF0000) -> "#FF0000"
             hexColor:
-                '#${selectedColor.toARGB32().toRadixString(16).padLeft(8, '0').substring(2)}',
+                '#${selectedColor.toARGB32().toRadixString(16).substring(2)}',
+            dueDate: selectedDate,
             token: authState.user.token,
           ),
         );
@@ -63,9 +59,10 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('New Task'),
+        title: const Text('Add New Task'),
         actions: [
-          IconButton(onPressed: uploadTask, icon: const Icon(Icons.check)),
+          // Botón de guardar en la barra superior (estilo iOS/Moderno)
+          IconButton(onPressed: createTask, icon: const Icon(Icons.done)),
         ],
       ),
       body: BlocConsumer<TaskBloc, TaskState>(
@@ -73,28 +70,66 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
           if (state is TaskFailure) {
             showSnackBar(context, state.error);
           } else if (state is TaskSuccess) {
-            showSnackBar(context, 'Task created successfully!');
-            Navigator.pop(context); // Volver al Home al terminar
+            // Si se crea bien, volvemos atrás
+            Navigator.pop(context);
           }
         },
         builder: (context, state) {
           if (state is TaskLoading) {
-            return const CircularProgressIndicator();
+            return Center(child: const CircularProgressIndicator());
           }
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(20),
             child: Form(
               key: formKey,
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // TÍTULO
+                  // 1. SELECTOR DE FECHA (Calendario) 📅
+                  //
+                  GestureDetector(
+                    onTap: () async {
+                      final pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now(),
+                        lastDate: DateTime(3000),
+                      );
+                      if (pickedDate != null) {
+                        setState(() {
+                          selectedDate = pickedDate;
+                        });
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(15),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.calendar_month),
+                          const SizedBox(width: 10),
+                          Text(
+                            DateFormat.yMMMEd().format(
+                              selectedDate,
+                            ), // Ej: "Thu, Jan 25, 2024"
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 2. INPUT DE TÍTULO 📝
                   TextFormField(
                     controller: titleController,
-                    decoration: const InputDecoration(hintText: 'Title'),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
+                    decoration: const InputDecoration(
+                      hintText: 'Title',
+                      border: OutlineInputBorder(), // Borde cuadrado simple
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -103,17 +138,16 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 20),
 
-                  // DESCRIPCIÓN
+                  // 3. INPUT DE DESCRIPCIÓN 📄
                   TextFormField(
                     controller: descriptionController,
                     decoration: const InputDecoration(
                       hintText: 'Description',
-                      border: InputBorder
-                          .none, // Quitamos bordes para que parezca un bloc de notas
+                      border: OutlineInputBorder(),
                     ),
-                    maxLines: null, // Permite infinitas líneas
+                    maxLines: 4, // Permite escribir varios párrafos
                     validator: (value) {
                       if (value == null || value.isEmpty) {
                         return 'Please enter a description';
@@ -123,33 +157,45 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
                   ),
                   const SizedBox(height: 20),
 
-                  // SELECTOR DE COLOR
-                  SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: cardColors.map((color) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                selectedColor = color;
-                              });
-                            },
-                            child: CircleAvatar(
-                              backgroundColor: color,
-                              radius: 20,
-                              child: selectedColor == color
-                                  ? const Icon(
-                                      Icons.check,
-                                      color: Colors.black,
-                                    ) // Marca el seleccionado
-                                  : null,
-                            ),
-                          ),
-                        );
-                      }).toList(),
+                  // 4. SELECTOR DE COLOR (ColorPicker) 🎨
+                  //
+                  const Text(
+                    'Color',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 10),
+                  ColorPicker(
+                    color: selectedColor,
+                    onColorChanged: (Color color) {
+                      setState(() {
+                        selectedColor = color;
+                      });
+                    },
+                    heading: const Text('Select color'),
+                    subheading: const Text('Select color shade'),
+                    wheelSubheading: const Text(
+                      'Selected color and its shades',
                     ),
+                    showMaterialName: true,
+                    showColorName: true,
+                    showColorCode: true,
+                    copyPasteBehavior: const ColorPickerCopyPasteBehavior(
+                      longPressMenu: true,
+                    ),
+                    materialNameTextStyle: Theme.of(
+                      context,
+                    ).textTheme.bodySmall,
+                    colorNameTextStyle: Theme.of(context).textTheme.bodySmall,
+                    colorCodeTextStyle: Theme.of(context).textTheme.bodySmall,
+                    pickersEnabled: const <ColorPickerType, bool>{
+                      ColorPickerType.both: false,
+                      ColorPickerType.primary: true, // Colores básicos
+                      ColorPickerType.accent: true, // Colores vivos
+                      ColorPickerType.bw: false,
+                      ColorPickerType.custom: false,
+                      ColorPickerType.wheel:
+                          true, // Rueda RGB (Como en el video)
+                    },
                   ),
                 ],
               ),

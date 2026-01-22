@@ -2,7 +2,9 @@ import 'package:frontend/features/auth/data/datasources/auth_local_data_source.d
 import 'package:frontend/features/auth/domain/usecases/current_user.dart';
 import 'package:frontend/features/auth/domain/usecases/user_login.dart';
 import 'package:frontend/features/auth/domain/usecases/user_logout.dart';
+import 'package:frontend/features/task/domain/usecases/delete_task.dart';
 import 'package:frontend/features/task/domain/usecases/get_all_tasks.dart';
+import 'package:frontend/features/task/domain/usecases/sync_task_status.dart';
 import 'package:frontend/features/task/presentation/bloc/task_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:frontend/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -76,9 +78,16 @@ void _initTask() {
   // Use Case
   serviceLocator.registerLazySingleton(() => UploadTask(serviceLocator()));
   serviceLocator.registerLazySingleton(() => GetAllTasks(serviceLocator()));
+  serviceLocator.registerFactory(() => SyncTaskStatus(serviceLocator()));
+  serviceLocator.registerLazySingleton(() => DeleteTask(serviceLocator()));
 
   // BLoC
   serviceLocator.registerLazySingleton(
-    () => TaskBloc(uploadTask: serviceLocator(), getAllTasks: serviceLocator()),
+    () => TaskBloc(
+      uploadTask: serviceLocator(),
+      getAllTasks: serviceLocator(),
+      syncTaskStatus: serviceLocator(),
+      deleteTask: serviceLocator(),
+    ),
   );
 }

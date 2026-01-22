@@ -6,10 +6,18 @@ import 'package:frontend/features/task/data/models/task_model.dart';
 abstract interface class TaskRemoteDataSource {
   Future<TaskModel> uploadTask({
     required TaskModel task,
-    required String token, // <--- Necesitamos el token para entrar
+    required String token,
   });
 
   Future<List<TaskModel>> getTasks({required String token});
+
+  Future<void> syncTaskStatus({
+    required String token,
+    required String taskId,
+    required bool isCompleted,
+  });
+
+  Future<void> deleteTask({required String taskId, required String token});
 }
 
 class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
@@ -24,10 +32,10 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
       final response = await http.post(
         Uri.parse('$baseUrl/tasks'),
         headers: {'Content-Type': 'application/json', 'x-auth-token': token},
-        body: task.toJson(), // Enviamos la tarea convertida a texto
+        body: task.toJson(),
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode != 201) {
         throw ServerException(
           jsonDecode(response.body)['error'] ?? 'Error desconocido',
         );
@@ -42,26 +50,10 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
   @override
   Future<List<TaskModel>> getTasks({required String token}) async {
     try {
-      // 1. VERIFICAMOS LA IP
-      print('📡 DATA SOURCE: URL usada -> $baseUrl/tasks');
-
-      // 2. VERIFICAMOS EL TOKEN (IMPORTANTE)
-      print('🔑 TOKEN RECIBIDO: $token');
-
-      final response = await http
-          .get(
-            Uri.parse('$baseUrl/tasks'),
-            headers: {
-              'Content-Type': 'application/json',
-              'x-auth-token': token,
-            },
-          )
-          .timeout(const Duration(seconds: 5));
-
-      print(
-        '📡 DATA SOURCE: Respuesta recibida. Código: ${response.statusCode}',
-      ); // 2
-      print('📡 DATA SOURCE: Body: ${response.body}'); // 3
+      final response = await http.get(
+        Uri.parse('$baseUrl/tasks'),
+        headers: {'Content-Type': 'application/json', 'x-auth-token': token},
+      );
 
       if (response.statusCode != 200) {
         throw ServerException(
@@ -69,18 +61,50 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
         );
       }
 
-      print('📡 DATA SOURCE: Intentando decodificar JSON...'); // 4
       final List<dynamic> resBody = jsonDecode(response.body);
 
-      print('📡 DATA SOURCE: Mapeando a TaskModel...'); // 5
       final tasks = resBody.map((task) => TaskModel.fromMap(task)).toList();
 
-      print(
-        '📡 DATA SOURCE: Mapeo completado. Retornando ${tasks.length} tareas.',
-      ); // 6
       return tasks;
     } catch (e) {
-      print('🔥 DATA SOURCE ERROR CRÍTICO: $e'); // 7
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> syncTaskStatus({
+    required String token,
+    required String taskId,
+    required bool isCompleted,
+  }) async {
+    try {
+      final response = await http.post(
+        Uri.parse('$baseUrl/tasks/sync'),
+        headers: {'Content-Type': 'application/json', 'x-auth-token': token},
+        body: jsonEncode({'id': taskId, 'isCompleted': isCompleted}),
+      );
+      if (response.statusCode != 200) {
+        throw ServerException(jsonDecode(response.body)['error']);
+      }
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<void> deleteTask({
+    required String taskId,
+    required String token,
+  }) async {
+    try {
+      final response = await http.delete(
+        Uri.parse('$baseUrl/tasks/$taskId'),
+        headers: {'Content-Type': 'application/json', 'x-auth-token': token},
+      );
+      if (response.statusCode != 200) {
+        throw ServerException(jsonDecode(response.body)['error']);
+      }
+    } catch (e) {
       throw ServerException(e.toString());
     }
   }

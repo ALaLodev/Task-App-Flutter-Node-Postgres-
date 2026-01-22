@@ -8,8 +8,20 @@ abstract interface class TaskRepository {
     required String title,
     required String description,
     required String hexColor,
+    required DateTime dueDate,
     required String token,
   });
 
   Future<Either<Failure, List<Task>>> getTasks({required String token});
+
+  Future<Either<Failure, void>> syncTaskStatus({
+    required String token,
+    required String taskId,
+    required bool isCompleted,
+  });
+
+  Future<Either<Failure, void>> deleteTask({
+    required String taskId,
+    required String token,
+  });
 }
