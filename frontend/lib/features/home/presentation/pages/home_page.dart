@@ -41,7 +41,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     // Generamos las fechas de la semana actual
     List<DateTime> weekDates = AppDateUtils.generateWeekDates(weekOffset);
-    // Nombre del mes (ej: "January")
     String monthName = DateFormat('MMMM').format(weekDates.first);
 
     return Scaffold(
@@ -180,6 +179,9 @@ class _HomePageState extends State<HomePage> {
                   final tasksForDate = state.tasks.where((task) {
                     return AppDateUtils.isSameDate(task.dueDate, selectedDate);
                   }).toList();
+
+                  // 2. ORDENADO: De más temprano a más tarde
+                  tasksForDate.sort((a, b) => a.dueDate.compareTo(b.dueDate));
 
                   if (tasksForDate.isEmpty) {
                     return const Center(

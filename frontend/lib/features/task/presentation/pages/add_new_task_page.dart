@@ -21,13 +21,17 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
   final descriptionController = TextEditingController();
   final formKey = GlobalKey<FormState>();
 
-  DateTime selectedDate = DateTime.now();
-  Color selectedColor = const Color.fromRGBO(
-    246,
-    222,
-    194,
-    1,
-  ); // Color crema por defecto
+  // Fecha por defecto (UTC)
+  DateTime selectedDate = DateTime.utc(
+    DateTime.now().year,
+    DateTime.now().month,
+    DateTime.now().day,
+  );
+
+  // ⏰ Hora por defecto (La actual)
+  TimeOfDay selectedTime = TimeOfDay.now();
+
+  Color selectedColor = const Color.fromRGBO(246, 222, 194, 1);
 
   @override
   void dispose() {
@@ -40,6 +44,16 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
     if (formKey.currentState!.validate()) {
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthSuccess) {
+        // 🧪 FUSIÓN NUCLEAR: Juntamos Fecha UTC + Hora Elegida
+        // Creamos un DateTime UTC con el año/mes/día elegidos Y la hora/minuto elegidos.
+        final finalDateTime = DateTime.utc(
+          selectedDate.year,
+          selectedDate.month,
+          selectedDate.day,
+          selectedTime.hour,
+          selectedTime.minute,
+        );
+
         context.read<TaskBloc>().add(
           TaskUpload(
             uid: authState.user.id,
@@ -47,7 +61,7 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
             description: descriptionController.text.trim(),
             hexColor:
                 '#${selectedColor.toARGB32().toRadixString(16).substring(2)}',
-            dueDate: selectedDate,
+            dueDate: finalDateTime, // Enviamos la fecha completa
             token: authState.user.token,
           ),
         );
@@ -61,7 +75,6 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
       appBar: AppBar(
         title: const Text('Add New Task'),
         actions: [
-          // Botón de guardar en la barra superior (estilo iOS/Moderno)
           IconButton(onPressed: createTask, icon: const Icon(Icons.done)),
         ],
       ),
@@ -70,13 +83,12 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
           if (state is TaskFailure) {
             showSnackBar(context, state.error);
           } else if (state is TaskSuccess) {
-            // Si se crea bien, volvemos atrás
             Navigator.pop(context);
           }
         },
         builder: (context, state) {
           if (state is TaskLoading) {
-            return Center(child: const CircularProgressIndicator());
+            return const CircularProgressIndicator();
           }
 
           return SingleChildScrollView(
@@ -86,84 +98,127 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 1. SELECTOR DE FECHA (Calendario) 📅
-                  //
-                  GestureDetector(
-                    onTap: () async {
-                      final pickedDate = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now(),
-                        lastDate: DateTime(3000),
-                      );
-                      if (pickedDate != null) {
-                        setState(() {
-                          selectedDate = pickedDate;
-                        });
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(15),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_month),
-                          const SizedBox(width: 10),
-                          Text(
-                            DateFormat.yMMMEd().format(
-                              selectedDate,
-                            ), // Ej: "Thu, Jan 25, 2024"
-                            style: const TextStyle(fontWeight: FontWeight.bold),
+                  // FILA DE FECHA Y HORA 📅 ⏰
+                  Row(
+                    children: [
+                      // 1. SELECTOR DE FECHA (Expandido)
+                      Expanded(
+                        flex: 3,
+                        child: GestureDetector(
+                          onTap: () async {
+                            final pickedDate = await showDatePicker(
+                              context: context,
+                              initialDate: DateTime.now(),
+                              firstDate: DateTime.now(),
+                              lastDate: DateTime(3000),
+                            );
+                            if (pickedDate != null) {
+                              setState(() {
+                                selectedDate = DateTime.utc(
+                                  pickedDate.year,
+                                  pickedDate.month,
+                                  pickedDate.day,
+                                );
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.calendar_month),
+                                const SizedBox(width: 10),
+                                // Usamos Expanded + FittedBox para que el texto nunca rompa
+                                Expanded(
+                                  child: FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(
+                                      DateFormat.yMMMEd().format(selectedDate),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+
+                      const SizedBox(width: 10),
+
+                      // 2. SELECTOR DE HORA (Nuevo) ⏰
+                      Expanded(
+                        flex: 2,
+                        child: GestureDetector(
+                          onTap: () async {
+                            final pickedTime = await showTimePicker(
+                              context: context,
+                              initialTime: selectedTime,
+                            );
+                            if (pickedTime != null) {
+                              setState(() {
+                                selectedTime = pickedTime;
+                              });
+                            }
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(15),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time_filled),
+                                const SizedBox(width: 10),
+                                Text(
+                                  selectedTime.format(
+                                    context,
+                                  ), // Muestra "14:30" o "2:30 PM"
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+
                   const SizedBox(height: 20),
 
-                  // 2. INPUT DE TÍTULO 📝
+                  // INPUTS DE TEXTO
                   TextFormField(
                     controller: titleController,
                     decoration: const InputDecoration(
                       hintText: 'Title',
-                      border: OutlineInputBorder(), // Borde cuadrado simple
+                      border: OutlineInputBorder(),
                     ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a title';
-                      }
-                      return null;
-                    },
+                    validator: (val) => val!.isEmpty ? 'Enter a title' : null,
                   ),
                   const SizedBox(height: 20),
-
-                  // 3. INPUT DE DESCRIPCIÓN 📄
                   TextFormField(
                     controller: descriptionController,
                     decoration: const InputDecoration(
                       hintText: 'Description',
                       border: OutlineInputBorder(),
                     ),
-                    maxLines: 4, // Permite escribir varios párrafos
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a description';
-                      }
-                      return null;
-                    },
+                    maxLines: 4,
+                    validator: (val) =>
+                        val!.isEmpty ? 'Enter a description' : null,
                   ),
                   const SizedBox(height: 20),
 
-                  // 4. SELECTOR DE COLOR (ColorPicker) 🎨
-                  //
-                  const Text(
-                    'Color',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
+                  // SELECTOR DE COLOR
                   ColorPicker(
                     color: selectedColor,
                     onColorChanged: (Color color) {
@@ -182,19 +237,11 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
                     copyPasteBehavior: const ColorPickerCopyPasteBehavior(
                       longPressMenu: true,
                     ),
-                    materialNameTextStyle: Theme.of(
-                      context,
-                    ).textTheme.bodySmall,
-                    colorNameTextStyle: Theme.of(context).textTheme.bodySmall,
-                    colorCodeTextStyle: Theme.of(context).textTheme.bodySmall,
                     pickersEnabled: const <ColorPickerType, bool>{
                       ColorPickerType.both: false,
-                      ColorPickerType.primary: true, // Colores básicos
-                      ColorPickerType.accent: true, // Colores vivos
-                      ColorPickerType.bw: false,
-                      ColorPickerType.custom: false,
-                      ColorPickerType.wheel:
-                          true, // Rueda RGB (Como en el video)
+                      ColorPickerType.primary: true,
+                      ColorPickerType.accent: true,
+                      ColorPickerType.wheel: true,
                     },
                   ),
                 ],

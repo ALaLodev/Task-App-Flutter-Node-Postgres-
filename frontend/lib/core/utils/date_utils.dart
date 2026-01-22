@@ -34,14 +34,16 @@ class AppDateUtils {
 
   // Genera String hexadecimal desde Color
   static String colorToHex(Color color) {
-    return '#${color.value.toRadixString(16).substring(2)}';
+    return '#${color.toARGB32().toRadixString(16).substring(2)}';
   }
 
   // Oscurece un color (para bordes)
   static Color strengthenColor(Color color, double factor) {
-    int r = (color.red * factor).clamp(0, 255).toInt();
-    int g = (color.green * factor).clamp(0, 255).toInt();
-    int b = (color.blue * factor).clamp(0, 255).toInt();
-    return Color.fromARGB(color.alpha, r, g, b);
+    int r = (color.r * 255 * factor).clamp(0, 255).toInt();
+    int g = (color.g * 255 * factor).clamp(0, 255).toInt();
+    int b = (color.b * 255 * factor).clamp(0, 255).toInt();
+    int a = (color.a * 255).toInt();
+
+    return Color.fromARGB(a, r, g, b);
   }
 }

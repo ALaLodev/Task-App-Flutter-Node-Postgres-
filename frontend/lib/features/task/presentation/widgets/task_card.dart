@@ -81,7 +81,15 @@ class TaskCard extends StatelessWidget {
                 shape: const CircleBorder(),
               ),
               Text(
-                DateFormat.jm().format(dueAt), // Muestra "10:00 AM"
+                DateFormat.jm().format(
+                  DateTime(
+                    dueAt.year,
+                    dueAt.month,
+                    dueAt.day,
+                    dueAt.hour,
+                    dueAt.minute,
+                  ),
+                ),
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
