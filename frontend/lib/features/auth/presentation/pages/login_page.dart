@@ -88,7 +88,7 @@ class _LoginPageState extends State<LoginPage> {
                             text: 'Sign Up',
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
-                                  color: AppPallete.gradient2,
+                                  color: AppPallete.backgroundColor,
                                   fontWeight: FontWeight.bold,
                                 ),
                           ),

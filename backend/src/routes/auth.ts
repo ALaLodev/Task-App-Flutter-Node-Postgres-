@@ -67,7 +67,6 @@ authRouter.post("/login", async(req: Request, res: Response, next: NextFunction)
 });
 
 // RUTA: Obtener datos del usuario actual
-// Fíjate que ponemos 'authMiddleware' en medio
 authRouter.get("/", authMiddleware, async (req: AuthRequest, res: Response): Promise<void> => {
   try {
     // Buscamos al usuario usando el ID que el middleware extrajo del token

@@ -4,6 +4,7 @@ import 'package:frontend/features/auth/domain/usecases/user_login.dart';
 import 'package:frontend/features/auth/domain/usecases/user_logout.dart';
 import 'package:frontend/features/task/domain/usecases/delete_task.dart';
 import 'package:frontend/features/task/domain/usecases/get_all_tasks.dart';
+import 'package:frontend/features/task/domain/usecases/edit_task.dart';
 import 'package:frontend/features/task/domain/usecases/sync_task_status.dart';
 import 'package:frontend/features/task/presentation/bloc/task_bloc.dart';
 import 'package:get_it/get_it.dart';
@@ -80,6 +81,7 @@ void _initTask() {
   serviceLocator.registerLazySingleton(() => GetAllTasks(serviceLocator()));
   serviceLocator.registerFactory(() => SyncTaskStatus(serviceLocator()));
   serviceLocator.registerLazySingleton(() => DeleteTask(serviceLocator()));
+  serviceLocator.registerLazySingleton(() => EditTask(serviceLocator()));
 
   // BLoC
   serviceLocator.registerLazySingleton(
@@ -88,6 +90,7 @@ void _initTask() {
       getAllTasks: serviceLocator(),
       syncTaskStatus: serviceLocator(),
       deleteTask: serviceLocator(),
+      editTask: serviceLocator(),
     ),
   );
 }

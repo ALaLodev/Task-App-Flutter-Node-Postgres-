@@ -61,3 +61,13 @@ final class TaskDelete extends TaskEvent {
   @override
   List<Object> get props => [taskId, token];
 }
+
+final class TaskEdit extends TaskEvent {
+  final Task task;
+  final String token;
+
+  const TaskEdit({required this.task, required this.token});
+
+  @override
+  List<Object> get props => [task, token];
+}

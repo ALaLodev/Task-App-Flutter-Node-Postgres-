@@ -96,4 +96,21 @@ class TaskRepositoryImpl implements TaskRepository {
       return left(Failure(e.message));
     }
   }
+
+  @override
+  Future<Either<Failure, Task>> editTask({
+    required Task task,
+    required String token,
+  }) async {
+    try {
+      final taskModel = (task as TaskModel);
+      final updateTask = await remoteDataSource.editTask(
+        task: taskModel,
+        token: token,
+      );
+      return right(updateTask);
+    } on ServerException catch (e) {
+      return left(Failure(e.message));
+    }
+  }
 }

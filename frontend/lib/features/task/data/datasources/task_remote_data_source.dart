@@ -18,6 +18,8 @@ abstract interface class TaskRemoteDataSource {
   });
 
   Future<void> deleteTask({required String taskId, required String token});
+
+  Future<TaskModel> editTask({required TaskModel task, required String token});
 }
 
 class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
@@ -104,6 +106,27 @@ class TaskRemoteDataSourceImpl implements TaskRemoteDataSource {
       if (response.statusCode != 200) {
         throw ServerException(jsonDecode(response.body)['error']);
       }
+    } catch (e) {
+      throw ServerException(e.toString());
+    }
+  }
+
+  @override
+  Future<TaskModel> editTask({
+    required TaskModel task,
+    required String token,
+  }) async {
+    try {
+      final response = await http.put(
+        Uri.parse('$baseUrl/tasks/${task.id}'),
+        headers: {'Content-Type': 'application/json', 'x-auth-token': token},
+        body: task.toJson(),
+      );
+
+      if (response.statusCode != 200) {
+        throw ServerException(jsonDecode(response.body)['error']);
+      }
+      return TaskModel.fromJson(response.body);
     } catch (e) {
       throw ServerException(e.toString());
     }

@@ -24,4 +24,9 @@ abstract interface class TaskRepository {
     required String taskId,
     required String token,
   });
+
+  Future<Either<Failure, Task>> editTask({
+    required Task task,
+    required String token,
+  });
 }

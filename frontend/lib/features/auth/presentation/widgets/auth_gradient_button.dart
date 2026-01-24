@@ -17,9 +17,11 @@ class AuthGradientButton extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            AppPallete.gradient1,
-            AppPallete.gradient2,
-            AppPallete.gradient3,
+            //AppPallete.gradient1,
+            //AppPallete.gradient2,
+            //AppPallete.gradient3,
+            AppPallete.backgroundColor,
+            AppPallete.backgroundColor,
           ],
           begin: Alignment.bottomLeft,
           end: Alignment.topRight,

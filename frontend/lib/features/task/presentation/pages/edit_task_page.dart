@@ -1,37 +1,55 @@
 import 'package:flex_color_picker/flex_color_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:frontend/core/utils/date_utils.dart';
 import 'package:frontend/core/utils/show_snackbar.dart';
 import 'package:frontend/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:frontend/features/task/data/models/task_model.dart';
+import 'package:frontend/features/task/domain/entities/task.dart';
 import 'package:frontend/features/task/presentation/bloc/task_bloc.dart';
 import 'package:intl/intl.dart';
 
-class AddNewTaskPage extends StatefulWidget {
-  static MaterialPageRoute route() =>
-      MaterialPageRoute(builder: (context) => const AddNewTaskPage());
+class EditTaskPage extends StatefulWidget {
+  final Task task;
 
-  const AddNewTaskPage({super.key});
+  static MaterialPageRoute route(Task task) =>
+      MaterialPageRoute(builder: (context) => EditTaskPage(task: task));
+
+  const EditTaskPage({super.key, required this.task});
 
   @override
-  State<AddNewTaskPage> createState() => _AddNewTaskPageState();
+  State<EditTaskPage> createState() => _EditTaskPageState();
 }
 
-class _AddNewTaskPageState extends State<AddNewTaskPage> {
-  final titleController = TextEditingController();
-  final descriptionController = TextEditingController();
+class _EditTaskPageState extends State<EditTaskPage> {
+  late TextEditingController titleController;
+  late TextEditingController descriptionController;
   final formKey = GlobalKey<FormState>();
 
-  // Fecha por defecto (UTC)
-  DateTime selectedDate = DateTime.utc(
-    DateTime.now().year,
-    DateTime.now().month,
-    DateTime.now().day,
-  );
+  late DateTime selectedDate;
+  late TimeOfDay selectedTime;
+  late Color selectedColor;
 
-  // ⏰ Hora por defecto (La actual)
-  TimeOfDay selectedTime = TimeOfDay.now();
+  @override
+  void initState() {
+    super.initState();
+    // 1. RELLENAMOS LOS DATOS INICIALES
+    titleController = TextEditingController(text: widget.task.title);
+    descriptionController = TextEditingController(
+      text: widget.task.description,
+    );
 
-  Color selectedColor = const Color.fromRGBO(246, 222, 194, 1);
+    // Recuperamos Fecha y Hora de la tarea existente
+    // (Asumimos que viene en UTC, lo mostramos tal cual)
+    selectedDate = widget.task.dueDate;
+    selectedTime = TimeOfDay(
+      hour: widget.task.dueDate.hour,
+      minute: widget.task.dueDate.minute,
+    );
+
+    // Convertimos el HexString a Color
+    selectedColor = AppDateUtils.hexToColor(widget.task.hexColor);
+  }
 
   @override
   void dispose() {
@@ -40,11 +58,10 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
     super.dispose();
   }
 
-  void createTask() {
+  void editTask() {
     if (formKey.currentState!.validate()) {
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthSuccess) {
-        // Creamos un DateTime UTC con el año/mes/día elegidos Y la hora/minuto elegidos.
         final finalDateTime = DateTime.utc(
           selectedDate.year,
           selectedDate.month,
@@ -53,16 +70,22 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
           selectedTime.minute,
         );
 
+        // Creamos el modelo actualizado
+        final editedTask = TaskModel(
+          id: widget.task.id, // Mantenemos el MISMO ID
+          uid: authState.user.id,
+          title: titleController.text.trim(),
+          description: descriptionController.text.trim(),
+          hexColor: AppDateUtils.colorToHex(selectedColor),
+          dueDate: finalDateTime,
+          isCompleted: widget.task.isCompleted,
+          createdAt: widget.task.createdAt,
+          updatedAt: DateTime.now(), // Actualizamos la fecha de modificación
+        );
+
+        // Enviamos al Bloc (Evento: TaskUpdate)
         context.read<TaskBloc>().add(
-          TaskUpload(
-            uid: authState.user.id,
-            title: titleController.text.trim(),
-            description: descriptionController.text.trim(),
-            hexColor:
-                '#${selectedColor.toARGB32().toRadixString(16).substring(2)}',
-            dueDate: finalDateTime, // Enviamos la fecha completa
-            token: authState.user.token,
-          ),
+          TaskEdit(task: editedTask, token: authState.user.token),
         );
       }
     }
@@ -72,9 +95,9 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Add New Task'),
+        title: const Text('Edit Task'),
         actions: [
-          IconButton(onPressed: createTask, icon: const Icon(Icons.done)),
+          IconButton(onPressed: editTask, icon: const Icon(Icons.done)),
         ],
       ),
       body: BlocConsumer<TaskBloc, TaskState>(
@@ -82,7 +105,7 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
           if (state is TaskFailure) {
             showSnackBar(context, state.error);
           } else if (state is TaskSuccess) {
-            Navigator.pop(context);
+            Navigator.pop(context); // Volver al Home al terminar
           }
         },
         builder: (context, state) {
@@ -97,18 +120,18 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // FILA DE FECHA Y HORA 📅 ⏰
+                  // FILA DE FECHA Y HORA
                   Row(
                     children: [
-                      // 1. SELECTOR DE FECHA (Expandido)
+                      // 1. SELECTOR DE FECHA
                       Expanded(
                         flex: 3,
                         child: GestureDetector(
                           onTap: () async {
                             final pickedDate = await showDatePicker(
                               context: context,
-                              initialDate: DateTime.now(),
-                              firstDate: DateTime.now(),
+                              initialDate: selectedDate,
+                              firstDate: DateTime(2000),
                               lastDate: DateTime(3000),
                             );
                             if (pickedDate != null) {
@@ -131,7 +154,6 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
                               children: [
                                 const Icon(Icons.calendar_month),
                                 const SizedBox(width: 10),
-                                // Usamos Expanded + FittedBox para que el texto nunca rompa
                                 Expanded(
                                   child: FittedBox(
                                     fit: BoxFit.scaleDown,
@@ -152,7 +174,7 @@ class _AddNewTaskPageState extends State<AddNewTaskPage> {
 
                       const SizedBox(width: 10),
 
-                      // 2. SELECTOR DE HORA (Nuevo) ⏰
+                      // 2. SELECTOR DE HORA
                       Expanded(
                         flex: 2,
                         child: GestureDetector(

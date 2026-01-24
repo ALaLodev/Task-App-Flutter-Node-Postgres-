@@ -5,6 +5,7 @@ import 'package:frontend/features/task/domain/entities/task.dart';
 import 'package:frontend/features/task/domain/usecases/delete_task.dart';
 import 'package:frontend/features/task/domain/usecases/get_all_tasks.dart';
 import 'package:frontend/features/task/domain/usecases/sync_task_status.dart';
+import 'package:frontend/features/task/domain/usecases/edit_task.dart';
 import 'package:frontend/features/task/domain/usecases/upload_task.dart';
 
 part 'task_event.dart';
@@ -15,21 +16,25 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
   final GetAllTasks _getAllTasks;
   final SyncTaskStatus _syncTaskStatus;
   final DeleteTask _deleteTask;
+  final EditTask _editTask;
 
   TaskBloc({
     required UploadTask uploadTask,
     required GetAllTasks getAllTasks,
     required SyncTaskStatus syncTaskStatus,
     required DeleteTask deleteTask,
+    required EditTask editTask,
   }) : _uploadTask = uploadTask,
        _getAllTasks = getAllTasks,
        _syncTaskStatus = syncTaskStatus,
        _deleteTask = deleteTask,
+       _editTask = editTask,
        super(TaskInitial()) {
     on<TaskUpload>(_onTaskUpload);
     on<TaskFetchAllTasks>(_onFetchAllTasks);
     on<TaskUpdateStatus>(_onUpdateTaskStatus);
     on<TaskDelete>(_onDeleteTask);
+    on<TaskEdit>(_onTaskEdit);
   }
 
   // ---------------------------------------------------------------------------
@@ -130,5 +135,17 @@ class TaskBloc extends Bloc<TaskEvent, TaskState> {
     );
 
     res.fold((l) => emit(TaskFailure(l.message)), (_) => null);
+  }
+
+  // ---------------------------------------------------------------------------
+  // 5. MODIFICAR TAREA
+  // ---------------------------------------------------------------------------
+  void _onTaskEdit(TaskEdit event, Emitter<TaskState> emit) async {
+    emit(TaskLoading());
+    final res = await _editTask(
+      EditTaskParams(task: event.task, token: event.token),
+    );
+
+    res.fold((l) => emit(TaskFailure(l.message)), (r) => emit(TaskSuccess(r)));
   }
 }
